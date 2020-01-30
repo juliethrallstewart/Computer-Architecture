@@ -1,5 +1,11 @@
 """CPU functionality."""
 
+"""
+* R5 is reserved as the interrupt mask (IM)
+* R6 is reserved as the interrupt status (IS)
+* R7 is reserved as the stack pointer (SP)
+"""
+
 import sys
 
 class CPU:
@@ -7,28 +13,68 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.running = True
+        self.pc = 0
+        self.reg = [0] * 8 #R5, R6, R7 is reserved, no slot over 255
+        self.ram = [0] * 256
+
+    def load_memory(self, filename):
+    
+        try:
+            address = 0
+            with open(filename) as f:
+                for line in f:
+                    # Ignore comments
+                    line = line.split("#")[0]
+                    line = line.strip()
+
+                    if line == "":
+                        continue  # Ignore blank lines
+
+                    value = int(line, 2)   # Base 10, but ls-8 is base 2
+                    print(line, "LINE")
+                    print(value, "VALUE")
+
+                    self.ram[address] = value
+                    address += 1
+
+        except FileNotFoundError:
+            print(f"{sys.argv[0]}: {filename} not found")
+            sys.exit(2)
+
+
+        if len(sys.argv) != 2:
+            print("Usage: file.py filename", file=sys.stderr)
+            sys.exit(1)
+
+        print(self.ram)   
 
     def load(self):
         """Load a program into memory."""
+        self.running = True
 
         address = 0
+        
+        self.load_memory(sys.argv[1])
 
-        # For now, we've just hardcoded a program:
+        
+        # # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8 set the value of a register to an integer
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0, Print numeric value stored in the given register. (as  a decimal)
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+        # for instruction in program:
+        #     self.ram[address] = instruction
+        #     address += 1
+
+        self.reg[7] = 0xF4
 
 
     def alu(self, op, reg_a, reg_b):
@@ -46,6 +92,7 @@ class CPU:
         from run() if you need help debugging.
         """
 
+
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
             #self.fl,
@@ -60,6 +107,64 @@ class CPU:
 
         print()
 
+    # read the memory address that's stored in register `PC`, and store that result in `IR`, the _Instruction Register_
     def run(self):
         """Run the CPU."""
-        pass
+       
+        self.trace()
+        print(self.ram, "RAM")
+        print(self.reg, "REG")
+
+        while self.running == True:
+            IR = self.ram_read(self.pc) #IR = Instruction Register
+            register_a = self.ram_read(self.pc + 1)
+            register_b = self.ram_read(self.pc + 2)
+
+            if IR == 0b10000010: #LDI 0b10000010
+                index = int(str(register_a), 2)
+                self.reg[index] = register_b
+                self.pc += 3
+                
+            elif IR == 0b01000111: #PRN 0b01000111 - Print numeric value stored in the given register.
+                value = self.reg[int(str(register_a))]
+                print(value)
+                self.pc += 2
+            elif IR == 0b0000000: #HLT 0b0000000
+                self.running = False
+                self.pc += 1
+            elif IR == 0b10100010:
+                index = int(str(register_a), 2)
+                self.reg[register_a] *= self.reg[register_b]
+                self.pc += 3
+
+            else:
+                print(f"Error: Unknown IR: {IR}")
+                sys.exit(1)
+
+    #accept the address to read and return the value stored there.
+
+    # Using `ram_read()`,
+# read the bytes at `PC+1` and `PC+2` from RAM into variables `operand_a` and
+# `operand_b` in case the instruction needs them.
+    def ram_read(self, address): #_Memory Address Register_ 
+        return self.ram[address]
+
+      
+        
+        
+
+    #accept a value to write, and the address to write it to
+    def ram_write(self, address, value): #_Memory Data Register_ 
+        self.ram[address] = value
+    
+
+# print(sys.argv[0], "sys args [0]")
+
+# # cd into src or the file directory itself
+# # in terminal $python 03_modules.py
+# # in terminal $python 03_modules.py tacos pizza
+# args = [arg for arg in sys.argv]
+# print(args)
+
+# for arg in sys.argv:
+#     print(arg, "arg in sys.argv")
