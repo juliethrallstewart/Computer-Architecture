@@ -16,6 +16,7 @@ class CPU:
         self.running = True
         self.pc = 0
         self.SP = 7 #stack pointer
+        self.fl = [0] * 8 #flags register
         self.reg = [0] * 8 #R5, R6, R7 is reserved, no slot over 255
         self.ram = [0] * 256
 
@@ -33,8 +34,7 @@ class CPU:
                         continue  # Ignore blank lines
 
                     value = int(line, 2)   # Base 10, but ls-8 is base 2
-                    print(line, "LINE")
-                    print(value, "VALUE")
+            
 
                     self.ram[address] = value
                     address += 1
@@ -83,7 +83,17 @@ class CPU:
 
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
+            self.pc += 3
+        elif op == "SUB":
+            self.reg[reg_a] -= self.reg[reg_b]
+        elif op == "DIV":
+            try:
+                self.reg[reg_a] /= self.reg[reg_b]
+                self.pc += 3
+            except ZeroDivisionError:
+                print("zero division error")
+                self.running = False
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -122,15 +132,14 @@ class CPU:
             register_b = self.ram_read(self.pc + 2)
 
             if IR == 0b10000010: #LDI 0b10000010
-                index = int(str(register_a), 2)
-                self.reg[index] = register_b
+                self.reg[register_a] = register_b
                 self.pc += 3
                 
             elif IR == 0b01000111: #PRN 0b01000111 - Print numeric value stored in the given register.
                 value = self.reg[int(str(register_a))]
                 print(value)
                 self.pc += 2
-            elif IR == 0b0000000: #HLT 0b0000000
+            elif IR == 0b0000001: #HLT 0b0000000
                 self.running = False
                 self.pc += 1
             elif IR == 0b10100010:
@@ -150,11 +159,67 @@ class CPU:
                 self.reg[reg] = val
                 self.reg[self.SP] += 1
                 self.pc += 2
+            
+            elif IR == 0b10100111: #CMP     Compare the values in two registers.
+                val_a = self.reg[register_a]
+                val_b = self.reg[register_b]
+                if val_a == val_b: #567 = #LGE
+                    self.fl[5] = 0
+                    self.fl[6] = 0
+                    self.fl[7] = 1
+                    self.pc += 3
+                elif val_a < val_b:
+                    self.fl[5] = 1
+                    self.fl[6] = 0
+                    self.fl[7] = 0
+                    self.pc += 3
+                elif val_a > val_b:
+                    self.fl[5] = 0
+                    self.fl[6] = 1
+                    self.fl[7] = 0
+                    self.pc += 3
+            
+            elif IR == 0b01010100: #JMP to the address stored in the given register.
+                address = self.reg[register_a]
+                self.pc = address
+
+            elif IR == 0b01010101: #JEQ
+                if self.fl[7] == 1:
+                    address = self.reg[register_a]
+                    self.pc = address
+                else:
+                    self.pc += 2
+               
+            elif IR == 0b01010110: #JNE
+                if self.fl[7] == 0:
+                    address = self.reg[register_a]
+                    self.pc = address
+                else:
+                    self.pc += 2
+            
+            elif IR == 0b10100010: #MUL 
+                self.reg[register_a] *= self.reg[register_b]
+                self.pc += 3
+
+            elif IR == 0b10100000: #ADD
+                self.alu('ADD', register_a, register_b)
+            
+            elif IR == 0b10100001: #SUB
+                self.alu('SUB', register_a, register_b)
+            
+            elif IR == 0b10100011: #DIV
+                self.alu('DIV', register_a, register_b)
+
+            
                 
 
             else:
                 print(f"Error: Unknown IR: {IR}")
                 sys.exit(1)
+
+# If `E` flag is clear (false, 0), jump to the address stored in the given
+#register.
+# Set the `PC` to the address stored in the given register.
 
     #accept the address to read and return the value stored there.
 

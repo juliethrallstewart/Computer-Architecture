@@ -16,7 +16,7 @@ class CPU:
         self.running = True
         self.pc = 0
         self.SP = 7 #stack pointer
-        self.fl = [0] * 8
+        self.fl = [0] * 8 #flags register
         self.reg = [0] * 8 #R5, R6, R7 is reserved, no slot over 255
         self.ram = [0] * 256
 
@@ -174,22 +174,21 @@ class CPU:
                 self.pc = address
 
             elif IR == 0b01010101: #JEQ
-                # print(self.fl[7], "line 205")
                 if self.fl[7] == 1:
                     address = self.reg[register_a]
-                    # print(address, "line 208")
                     self.pc = address
                 else:
                     self.pc += 2
                
             elif IR == 0b01010110: #JNE
-                # print(self.fl[7], "libne 212")
                 if self.fl[7] == 0:
                     address = self.reg[register_a]
-                    # print(address, "ADDRESS")
                     self.pc = address
                 else:
                     self.pc += 2
+            
+            elif IR == 0b10100010: #MUL
+                self.reg[register_a] *= self.reg[register_b]
 
             
                 
