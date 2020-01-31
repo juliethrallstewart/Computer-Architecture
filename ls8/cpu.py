@@ -78,7 +78,7 @@ class CPU:
         self.reg[7] = 0xF4
 
 
-    def alu(self, op, reg_a, reg_b):
+    def alu(self, op, reg_a, reg_b): #AND OR XOR NOT SHL SHR MOD
         """ALU operations."""
 
         if op == "ADD":
@@ -93,6 +93,12 @@ class CPU:
             except ZeroDivisionError:
                 print("zero division error")
                 self.running = False
+        elif op == 'AND': #bitwise and
+            val_a = bit(self.reg[reg_a])
+            val_b = bit(self.reg[reg_b])
+            value = val_a & val_b
+            self.reg[reg_a] = value
+            self.pc += 3
 
         else:
             raise Exception("Unsupported ALU operation")
@@ -209,6 +215,9 @@ class CPU:
             
             elif IR == 0b10100011: #DIV
                 self.alu('DIV', register_a, register_b)
+            
+            elif IR == 0b10101000: #AND
+                self.alu('AND', register_a, register_b)
 
             
                 
