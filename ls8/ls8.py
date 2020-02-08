@@ -2,6 +2,8 @@
 
 """Main."""
 
+# python3 ls8.py examples/stack.ls8
+
 import sys
 from cpu import *
 

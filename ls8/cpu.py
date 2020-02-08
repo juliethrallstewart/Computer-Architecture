@@ -4,6 +4,8 @@
 * R5 is reserved as the interrupt mask (IM)
 * R6 is reserved as the interrupt status (IS)
 * R7 is reserved as the stack pointer (SP)
+
+# run file : python3 ls8.py examples/stack.ls8
 """
 
 import sys
@@ -219,11 +221,35 @@ class CPU:
             elif IR == 0b10101000: #AND
                 self.alu('AND', register_a, register_b)
 
-            
-                
-
+            elif IR == 0b01000101:
+                print("PUSH")
+                # self.ram[self.register[self.SP]] = self.register[registerA]
+                # self.pc += 2
+                reg = self.ram[self.pc + 1]
+                val = self.register[reg]
+                # Decrement the SP.
+                self.register[self.SP] -= 1
+                # Copy the value in the given register to the address pointed to by self.SP.
+                self.ram[self.register[self.SP]] = val
+                # Increment self.pc by 2
+                self.pc += 2
+                # print(self.ram)
+        # POP
+            elif IR == 0b01000110:
+                # self.register[self.ram[registerA]] = self.ram[self.register[self.SP]]
+                # self.register[self.SP] += 1
+                # self.pc += 2
+                print("POP")
+                reg = self.ram[self.pc + 1]
+                # Copy the value from the address pointed to by SP to the given register.
+                val = self.ram[self.register[self.SP]]
+                self.register[reg] = val
+                # Increment self.SP.
+                self.register[self.SP] += 1
+                # Increment PC by 2
+                self.pc += 2
             else:
-                print(f"Error: Unknown IR: {IR}")
+                print(f"Error: Unknown command: {instruction}")
                 sys.exit(1)
 
 # If `E` flag is clear (false, 0), jump to the address stored in the given
